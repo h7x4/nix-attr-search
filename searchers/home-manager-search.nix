@@ -1,4 +1,4 @@
-{ pkgs, lib, home-manager, system, json2nix, ... }:
+{ pkgs, lib, home-manager, defaultManualPath, system, json2nix, ... }:
 let
   usage = pkgs.writeText "home-manager-search-usage" ''
     Usage:
@@ -105,10 +105,6 @@ let
       export DEFAULT=$(echo $JSON_DATA | ${jq} -r ".default" | ${json2nix}/bin/json2nix | ${nixfmt} | ${bat} ${batColorArg}--style=numbers)
       echo $JSON_DATA | ${gomplate} --datasource opt=stdin:?type=application/json --file ${template}
     '';
-
-  defaultManualPath = "${
-      home-manager.packages.${system}.docs-json
-    }/share/doc/home-manager/options.json";
 
 in pkgs.writers.writeBash "search-home-manager-attrs" ''
   JSON_MANUAL_PATH="${defaultManualPath}"

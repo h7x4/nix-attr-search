@@ -39,6 +39,9 @@
           pkgs.callPackage ./searchers/home-manager-search.nix {
             inherit home-manager;
             inherit (self.packages.${system}) json2nix;
+            defaultManualPath =
+              let pkg = self.packages.${system}.home-manager-json;
+              in "${pkg}/share/doc/home-manager/options.json";
           };
         nix-option-search = pkgs.callPackage ./searchers/nix-option-search.nix {
           inherit nixpkgs;
