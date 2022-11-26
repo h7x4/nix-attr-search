@@ -18,17 +18,29 @@ TODO:
 
 ### Nix Options
 
-TODO:
+**NOTE:** This is mostly a copypaste of `home-manager-search`.
+The documentation structure for `home-manager-search` and `nix-option-search` differ slightly, but they are similar enough that the copypaste version is kind of usable.
+I will fix up this in the future, but for now I am focusing on squashing the bugs within `home-manager-search`.
+
+```console
+nix run github:h7x4/nix-attr-search#nix-option-search
+```
+
+Or a more advanced version:
+
+```console
+nix run github:h7x4/nix-attr-search#nix-option-search -- --flake="github:NixOS/nixpkgs" --ref="nixos-22.05"
+```
 
 ### Homemanager
 
-```
+```console
 nix run github:h7x4/nix-attr-search#home-manager-search
 ```
 
 Or a more advanced version:
 
-```
+```console
 nix run github:h7x4/nix-attr-search#home-manager-search -- --flake="github:nix-community/home-manager" --ref="release-22.05"
 ```
 

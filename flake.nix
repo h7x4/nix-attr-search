@@ -45,6 +45,10 @@
           };
         nix-option-search = pkgs.callPackage ./searchers/nix-option-search.nix {
           inherit nixpkgs;
+          inherit (self.packages.${system}) json2nix;
+          defaultManualPath =
+            let pkg = self.packages.${system}.nix-options-json;
+            in "${pkg}/share/doc/nixos/options.json";
         };
         nix-package-search =
           pkgs.callPackage ./searchers/nix-package-search.nix { };
