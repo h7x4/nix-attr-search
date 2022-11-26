@@ -22,13 +22,6 @@
           home-manager-search nix-option-search nix-package-search nix2json;
       };
 
-      checks.${system} = let
-
-      in {
-        # hlint = pkgs.callPackage ./utils/hlint.nix {};
-        # format = pkgs.callPackage ./utils/format.nix {};
-      };
-
       hydraJobs = with pkgs.lib;
         mapAttrs' (name: value: nameValuePair name { ${system} = value; })
         self.packages.${system};
