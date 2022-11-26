@@ -37,7 +37,8 @@ let
     "<varname>([^>]*)</varname>" = "${red}$1${clear}";
     "</para><para>" = "\\n";
     "<link${s}xlink:href=\"([^>]*)\"${s}/>" = "${blue}$1${clear}";
-    "<link${s}xlink:href=\"([^>]*)\"${s}>([^<]*)</link>" = "${bold}$2 ${clear}(${blue}$1${clear})";
+    "<link${s}xlink:href=\"([^>]*)\"${s}>([^<]*)</link>" =
+      "${bold}$2 ${clear}(${blue}$1${clear})";
     "<xref${s}linkend=\"opt-([^>]*)\"${s}/>" = "${blue}$1${clear}";
   };
 
@@ -83,13 +84,15 @@ let
     ${jq} -C ".\"$OPTION_KEY\"" $JSON_MANUAL_PATH
   '';
 
-  previewGomplate = isColorized: let
-    # TODO: Color management here needs a refactoring badly...
-    pArgs = if isColorized then perlArgsColor else perlArgs;
-    colorSuffix = if isColorized then "-color" else "";
-    batColorArg = if isColorized then "--color=always " else "";
-    template = if isColorized then optionTemplateColor else optionTemplate;
-  in pkgs.writers.writeBash "preview-home-manager-attrs-gomplate${colorSuffix}" ''
+  previewGomplate = isColorized:
+    let
+      # TODO: Color management here needs a refactoring badly...
+      pArgs = if isColorized then perlArgsColor else perlArgs;
+      colorSuffix = if isColorized then "-color" else "";
+      batColorArg = if isColorized then "--color=always " else "";
+      template = if isColorized then optionTemplateColor else optionTemplate;
+    in pkgs.writers.writeBash
+    "preview-home-manager-attrs-gomplate${colorSuffix}" ''
       OPTION_KEY=$1
       JSON_MANUAL_PATH=$2
 
@@ -169,9 +172,13 @@ in pkgs.writers.writeBash "search-home-manager-attrs" ''
   elif [ -v PRINT_JSON ]; then
     ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${previewJson} {} $JSON_MANUAL_PATH"
   elif [ -v NO_COLOR ]; then
-    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${previewGomplate false} {} $JSON_MANUAL_PATH"
+    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${
+      previewGomplate false
+    } {} $JSON_MANUAL_PATH"
   else
-    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${previewGomplate true} {} $JSON_MANUAL_PATH"
+    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${
+      previewGomplate true
+    } {} $JSON_MANUAL_PATH"
   fi
 ''
 
