@@ -2,7 +2,7 @@
 let
   inherit (pkgs.callPackage ../internals/lib.nix { })
     flatten red bold blinkred green yellow magenta blue clear;
-in pkgs.writeText "nix-attrs-search-internal-option-template" (flatten ''
+in pkgs.writeText "nix-attr-search-internal-option-template" (flatten ''
   {{ define "colorize" -}}
     {{ strings.ShellQuote . | strings.Trim "'" }}
   {{- end -}}

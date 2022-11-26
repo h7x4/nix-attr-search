@@ -1,6 +1,6 @@
 { pkgs }:
 let inherit (pkgs.callPackage ../internals/lib.nix { }) flatten;
-in pkgs.writeText "nix-attrs-search-internal-option-template" (flatten ''
+in pkgs.writeText "nix-attr-search-internal-option-template" (flatten ''
   {{ with (ds "opt")}}
     {{- $origTitle := join .loc "." }}
     {{- $title := join .loc "." }}

@@ -7,8 +7,8 @@ pkgs.mkShell {
     hlint = pkgs.callPackage ./utils/hlint.nix { };
     ormolu = pkgs.callPackage ./utils/ormolu.nix { };
   in ''
-    alias nasf=${format}/bin/nix-attrs-search-format
-    alias nashl=${hlint}/bin/nix-attrs-search-hlint
-    alias nashf=${ormolu}/bin/nix-attrs-search-ormolu
+    alias nasf=${format}/bin/nix-attr-search-format
+    alias nashl=${hlint}/bin/nix-attr-search-hlint
+    alias nashf=${ormolu}/bin/nix-attr-search-ormolu
   '';
 }

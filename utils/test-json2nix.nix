@@ -1,5 +1,5 @@
 { pkgs, home-manager-options, json2nix }:
-pkgs.writers.writeBash "nix-attrs-search-test-json2nix" ''
+pkgs.writers.writeBash "nix-attr-search-test-json2nix" ''
   ELEMENT_COUNT=$(${jq} 'keys | length' ${home-manager-options}/share/doc/home-manager/options.json)
   echo "Trying $(($ELEMENT_COUNT - 1)) elements"
   for i in $(seq 0 $(($ELEMENT_COUNT - 1))); do
