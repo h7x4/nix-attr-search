@@ -1,35 +1,43 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.Aeson (Value(..), decode)
-import Data.Aeson.Key (Key, toString)
-import Data.Aeson.KeyMap (foldMapWithKey)
-import Data.Aeson.Parser (json')
-import Data.Aeson.Types (parse)
-import Data.String (fromString)
-import Data.Text (Text(..), unpack, replace, isInfixOf)
-import Data.Vector (Vector)
-import Data.Maybe (fromMaybe)
+import qualified Data.Aeson as A
+import qualified Data.Aeson.Key as A
+import qualified Data.Aeson.KeyMap as A
+import qualified Data.ByteString as BS
+import qualified Data.Either.Extra as E
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.Vector as V
+import Nixfmt (format)
 
 main :: IO ()
-main = interact f
+main = BS.interact parseNixCode
+
+parseNixCode :: BS.ByteString -> BS.ByteString
+parseNixCode input = T.encodeUtf8 $ E.fromEither formattedNixCode
   where
-    f input = case decode $ fromString input of
-      Nothing -> "json2nix error - could not parse input\n" ++ show input
-      Just jsonValue -> json2Nix jsonValue
+    addErrPrefix :: T.Text -> Either String a -> Either T.Text a
+    addErrPrefix prefix = E.mapLeft (T.append prefix . T.pack)
 
-keyValToString :: Key -> Value -> String
-keyValToString key value = toString key ++ " = " ++ json2Nix value ++ ";"
+    rawNixCode :: Either T.Text T.Text
+    rawNixCode = json2Nix <$> addErrPrefix "json2nix json error -\n" (A.eitherDecode $ BS.fromStrict input)
 
--- escapeDollar :: Text -> Text
--- escapeDollar = replace "''${" "\\''${"
+    formattedNixCode :: Either T.Text T.Text
+    formattedNixCode = (addErrPrefix "json2nix nixfmt error -\n" . format 80 "") =<< rawNixCode
 
-json2Nix :: Value -> String
-json2Nix (Object object) =  "{" ++ foldMapWithKey keyValToString object ++ "}"
-json2Nix (Array array) = "[" ++  foldr (\x y -> x ++ " " ++ y) "" (fmap json2Nix array) ++ "]"
-json2Nix (Number n) = show n
-json2Nix (Bool False) = "false"
-json2Nix (Bool True) = "true"
-json2Nix Null = "null"
-json2Nix (String text) = sep ++ unpack text  ++ sep
+keyValToString :: A.Key -> A.Value -> T.Text
+keyValToString key value = T.concat [T.pack $ show key, " = ", json2Nix value, ";"]
+
+-- escapeDollar :: T.Text -> T.Text
+-- escapeDollar = T.replace "''${" "\\''${"
+
+json2Nix :: A.Value -> T.Text
+json2Nix (A.Array array) = T.concat ["[", T.intercalate " " $ V.toList $ fmap json2Nix array, "]"]
+json2Nix (A.Object object) = T.concat ["{", A.foldMapWithKey keyValToString object, "}"]
+json2Nix (A.Number n) = T.pack $ show n
+json2Nix (A.Bool False) = "false"
+json2Nix (A.Bool True) = "true"
+json2Nix A.Null = "null"
+json2Nix (A.String text) = T.concat [sep, text, sep]
   where
-    sep = if "\"" `isInfixOf` text then "\'\'" else "\""
+    sep = if "\"" `T.isInfixOf` text then "\'\'" else "\""

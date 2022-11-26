@@ -99,13 +99,13 @@ let
       JSON_DATA=$(${jq} ".\"$OPTION_KEY\"" $JSON_MANUAL_PATH)
       export DESCRIPTION=$(echo $JSON_DATA | ${jq} -r ".description" | ${perl} ${pArgs})
 
-      EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example.text" 2>/dev/null)
+      EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example.text" 2>/dev/null | ${nixfmt})
       if [ $? != 0 ]; then
         EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example" | ${json2nix}/bin/json2nix)
       fi
-      export EXAMPLE=$(echo $EXAMPLE_DATA | ${nixfmt} | ${bat} ${batColorArg}--style=numbers)
+      export EXAMPLE=$(echo $EXAMPLE_DATA | ${bat} ${batColorArg}--style=numbers)
 
-      export DEFAULT=$(echo $JSON_DATA | ${jq} -r ".default" | ${json2nix}/bin/json2nix | ${nixfmt} | ${bat} ${batColorArg}--style=numbers)
+      export DEFAULT=$(echo $JSON_DATA | ${jq} -r ".default" | ${json2nix}/bin/json2nix | ${bat} ${batColorArg}--style=numbers)
       echo $JSON_DATA | ${gomplate} --datasource opt=stdin:?type=application/json --file ${template}
     '';
 
