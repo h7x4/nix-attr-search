@@ -38,6 +38,6 @@ json2Nix (A.Number n) = T.pack $ show n
 json2Nix (A.Bool False) = "false"
 json2Nix (A.Bool True) = "true"
 json2Nix A.Null = "null"
-json2Nix (A.String text) = T.concat [sep, text, sep]
-  where
-    sep = if "\"" `T.isInfixOf` text then "\'\'" else "\""
+-- Nixfmt will handle which quotation mark we are using anyway, so we
+-- might as well just escape all "s and use them as string markers.
+json2Nix (A.String text) = T.concat ["\"", T.replace "\"" "\\\"" text, "\""]
