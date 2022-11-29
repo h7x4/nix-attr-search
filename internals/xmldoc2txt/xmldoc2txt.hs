@@ -21,6 +21,10 @@ data PotentiallyColorizedString = PCS
 removeParagraphTags :: [TS.TagTree String] -> [TS.TagTree String]
 removeParagraphTags (TS.TagLeaf (TS.TagClose "para") : TS.TagLeaf (TS.TagOpen "para" []) : rest) =
   TS.TagLeaf (TS.TagText "\n") : removeParagraphTags rest
+  -- In this case, it will be directly followed by a <para> branch
+removeParagraphTags (TS.TagLeaf (TS.TagClose "para") : rest) = removeParagraphTags rest
+  -- In this case, it is directly behind by a <para> branch
+removeParagraphTags (TS.TagLeaf (TS.TagOpen "para" _) : rest) = removeParagraphTags rest
 removeParagraphTags (x : y : rest) = x : removeParagraphTags (y : rest)
 removeParagraphTags x = x
 
@@ -45,6 +49,11 @@ replaceTagColor (TS.TagLeaf (TS.TagText s)) =
   PCS
     { colorized = putStr s,
       nonColorized = s
+    }
+replaceTagColor (TS.TagBranch "para" _ inner) =
+  PCS
+    { colorized = mapM_ (colorized . replaceTagColor) inner,
+      nonColorized = concat $ map (nonColorized . replaceTagColor) inner
     }
 replaceTagColor (TS.TagBranch "code" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
