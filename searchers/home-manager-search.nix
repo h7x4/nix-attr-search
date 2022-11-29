@@ -60,9 +60,9 @@ let
       if [ $? != 0 ]; then
         EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example" | ${json2nix}/bin/json2nix)
       fi
-      export EXAMPLE=$(echo $EXAMPLE_DATA | ${bat} ${batColorArg}--style=numbers)
+      export EXAMPLE=$(echo $EXAMPLE_DATA | ${bat} ${batColorArg}--style=numbers -lnix)
 
-      export DEFAULT=$(echo $JSON_DATA | ${jq} -r ".default" | ${json2nix}/bin/json2nix | ${bat} ${batColorArg}--style=numbers)
+      export DEFAULT=$(echo $JSON_DATA | ${jq} -r ".default" | ${json2nix}/bin/json2nix | ${bat} ${batColorArg}--style=numbers -lnix)
       echo $JSON_DATA | ${gomplate} --datasource opt=stdin:?type=application/json --file ${template}
     '';
 
