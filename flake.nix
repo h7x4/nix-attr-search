@@ -56,7 +56,8 @@
         # nix-packages-json = pkgs.emptyFile;
 
         # Internal Tools
-        json2nix = pkgs.callPackage ./internals/json2nix { };
+        json2nix =
+          pkgs.callPackage ./internals/json2nix { compiler = "ghc924"; };
       };
 
       overlays.default = _: prev: prev // self.packages.${system};
