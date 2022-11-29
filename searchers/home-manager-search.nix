@@ -1,4 +1,5 @@
-{ pkgs, lib, home-manager, defaultManualPath, system, json2nix, ... }:
+{ pkgs, lib, home-manager, defaultManualPath, system, json2nix, xmldoc2txt, ...
+}:
 let
   usage = pkgs.writeText "home-manager-search-usage" ''
     Usage:
@@ -26,50 +27,6 @@ let
     jq fzf gomplate nixfmt bat perl blinkred bold red green yellow blue magenta
     clear flatten;
 
-  # TODO: Preprocess all XML tags in description.
-  substitutionsColor = let s = "\\s*";
-  in {
-    "<code>([^>]*)</code>" = "${bold}`$1`${clear}";
-    "<command>([^>]*)</command>" = "${bold}`$1`${clear}";
-    "<filename>([^>]*)</filename>" = "${yellow}$1${clear}";
-    "<emphasis>([^>]*)</emphasis>" = "${bold}$1${clear}";
-    "<literal>([^>]*)</literal>" = "${red}$1${clear}";
-    "<varname>([^>]*)</varname>" = "${red}$1${clear}";
-    "</para><para>" = "\\n";
-    "<link${s}xlink:href=\"([^>]*)\"${s}/>" = "${blue}$1${clear}";
-    "<link${s}xlink:href=\"([^>]*)\"${s}>([^<]*)</link>" =
-      "${bold}$2 ${clear}(${blue}$1${clear})";
-    "<xref${s}linkend=\"opt-([^>]*)\"${s}/>" = "${blue}$1${clear}";
-  };
-
-  substitutions = let s = "\\s*";
-  in {
-    "<code>([^>]*)</code>" = "`$1`";
-    "<command>([^>]*)</command>" = "`$1`";
-    "<filename>([^>]*)</filename>" = "`$1`";
-    "<emphasis>([^>]*)</emphasis>" = "`$1`";
-    "<literal>([^>]*)</literal>" = "`$1`";
-    "<varname>([^>]*)</varname>" = "`$1`";
-    "</para><para>" = "\\n";
-    "<link${s}xlink:href=\"([^>]*)\"${s}/>" = "`$1`";
-    "<link${s}xlink:href=\"([^>]*)\"${s}>([^<]*)</link>" = "`$2 ($1)`";
-    "<xref${s}linkend=\"opt-([^>]*)\"${s}/>" = "`$1`";
-  };
-
-  perlArgsColor = with lib;
-    pipe substitutionsColor [
-      (mapAttrsToList (name: value: "s|${name}|${value}|gm"))
-      (concatStringsSep ";")
-      (x: "-pe '${x}'")
-    ];
-
-  perlArgs = with lib;
-    pipe substitutions [
-      (mapAttrsToList (name: value: "s|${name}|${value}|gm"))
-      (concatStringsSep ";")
-      (x: "-pe '${x}'")
-    ];
-
   optionTemplateColor =
     pkgs.callPackage ../templates/option-preview-template-color.nix { };
 
@@ -87,9 +44,9 @@ let
   previewGomplate = isColorized:
     let
       # TODO: Color management here needs a refactoring badly...
-      pArgs = if isColorized then perlArgsColor else perlArgs;
       colorSuffix = if isColorized then "-color" else "";
       batColorArg = if isColorized then "--color=always " else "";
+      xmldoc2textColorArg = if isColorized then "-C " else "";
       template = if isColorized then optionTemplateColor else optionTemplate;
     in pkgs.writers.writeBash
     "preview-home-manager-attrs-gomplate${colorSuffix}" ''
@@ -97,7 +54,7 @@ let
       JSON_MANUAL_PATH=$2
 
       JSON_DATA=$(${jq} ".\"$OPTION_KEY\"" $JSON_MANUAL_PATH)
-      export DESCRIPTION=$(echo $JSON_DATA | ${jq} -r ".description" | ${perl} ${pArgs})
+      export DESCRIPTION=$(echo $JSON_DATA | ${jq} -r ".description" | ${xmldoc2txt}/bin/xmldoc2txt ${xmldoc2textColorArg})
 
       EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example.text" 2>/dev/null | ${nixfmt})
       if [ $? != 0 ]; then

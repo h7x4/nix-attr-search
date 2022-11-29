@@ -31,14 +31,14 @@
         home-manager-search =
           pkgs.callPackage ./searchers/home-manager-search.nix {
             inherit home-manager;
-            inherit (self.packages.${system}) json2nix;
+            inherit (self.packages.${system}) json2nix xmldoc2txt;
             defaultManualPath =
               let pkg = self.packages.${system}.home-manager-json;
               in "${pkg}/share/doc/home-manager/options.json";
           };
         nix-option-search = pkgs.callPackage ./searchers/nix-option-search.nix {
           inherit nixpkgs;
-          inherit (self.packages.${system}) json2nix;
+          inherit (self.packages.${system}) json2nix xmldoc2txt;
           defaultManualPath =
             let pkg = self.packages.${system}.nix-options-json;
             in "${pkg}/share/doc/nixos/options.json";
@@ -58,6 +58,8 @@
         # Internal Tools
         json2nix =
           pkgs.callPackage ./internals/json2nix { compiler = "ghc924"; };
+        xmldoc2txt =
+          pkgs.callPackage ./internals/xmldoc2txt { compiler = "ghc924"; };
       };
 
       overlays.default = _: prev: prev // self.packages.${system};
