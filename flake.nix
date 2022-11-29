@@ -19,7 +19,16 @@
         };
       in builtins.mapAttrs toApp {
         inherit (self.packages.${system})
-          home-manager-search nix-option-search nix-package-search nix2json;
+          home-manager-search nix-option-search nix-package-search;
+      } // {
+        nix2json = {
+          type = "app";
+          program = "${self.packages.${system}.nix2json}/bin/nix2json";
+        };
+        xmldoc2txt = {
+          type = "app";
+          program = "${self.packages.${system}.xmldoc2txt}/bin/xmldoc2txt";
+        };
       };
 
       hydraJobs = with pkgs.lib;
