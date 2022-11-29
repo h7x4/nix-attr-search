@@ -1,5 +1,5 @@
 # TODO:
-{ pkgs, lib, nixpkgs, defaultManualPath, system, json2nix, xmldoc2txt, ... }:
+{ pkgs, lib, nixpkgs, defaultManualPath, system, json2nix, docbook2txt, ... }:
 let
   usage = pkgs.writeText "nix-option-search-usage" ''
     Usage:
@@ -46,7 +46,7 @@ let
       # TODO: Color management here needs a refactoring badly...
       colorSuffix = if isColorized then "-color" else "";
       batColorArg = if isColorized then "--color=always " else "";
-      xmldoc2textColorArg = if isColorized then "-C " else "";
+      docbook2txtColorArg = if isColorized then "-C " else "";
       template = if isColorized then optionTemplateColor else optionTemplate;
     in pkgs.writers.writeBash
     "preview-nix-option-attrs-gomplate${colorSuffix}" ''
@@ -54,7 +54,7 @@ let
       JSON_MANUAL_PATH=$2
 
       JSON_DATA=$(${jq} ".\"$OPTION_KEY\"" $JSON_MANUAL_PATH)
-      export DESCRIPTION=$(echo $JSON_DATA | ${jq} -r ".description" | ${xmldoc2txt}/bin/xmldoc2txt ${xmldoc2textColorArg})
+      export DESCRIPTION=$(echo $JSON_DATA | ${jq} -r ".description" | ${docbook2txt}/bin/docbook2txt ${docbook2txtColorArg})
 
       EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example.text" 2>/dev/null)
       if [ $? != 0 ]; then

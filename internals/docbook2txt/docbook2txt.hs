@@ -1,3 +1,14 @@
+--   This is a program that converts docbook xml to optionally ANSI colored
+--   raw text.
+--
+--   See https://tdg.docbook.org/ for more information about the docbook format.
+--
+--   This conversion could also be achieved by using pandoc.
+--   However because of the custom color formatting, we would probably
+--   end up having to write custom conversion logic for every tag to be
+--   consumed by pandoc anyway. So instead, I am just planning on keeping
+--   my own module parsing raw xml tags (for now).
+
 import Data.List (find, intersperse)
 import Data.List.Split (splitOn)
 import qualified System.Console.ANSI as AN
@@ -25,9 +36,9 @@ data PotentiallyColorizedString = PCS
 removeParagraphTags :: [TS.TagTree String] -> [TS.TagTree String]
 removeParagraphTags (TS.TagLeaf (TS.TagClose "para") : TS.TagLeaf (TS.TagOpen "para" []) : rest) =
   TS.TagLeaf (TS.TagText "\n") : removeParagraphTags rest
-  -- In this case, it will be directly followed by a <para> branch
+-- In this case, it will be directly followed by a <para> branch
 removeParagraphTags (TS.TagLeaf (TS.TagClose "para") : rest) = removeParagraphTags rest
-  -- In this case, it is directly behind by a <para> branch
+-- In this case, it is directly behind by a <para> branch
 removeParagraphTags (TS.TagLeaf (TS.TagOpen "para" _) : rest) = removeParagraphTags rest
 removeParagraphTags (x : y : rest) = x : removeParagraphTags (y : rest)
 removeParagraphTags x = x
@@ -53,7 +64,6 @@ wrapColor c = wrapSGR (AN.SetColor AN.Foreground AN.Vivid c)
 bold :: AN.SGR
 bold = AN.SetConsoleIntensity AN.BoldIntensity
 
-
 -- Replace tags with their PCS string equivalent.
 replaceTagColor :: TS.TagTree String -> PotentiallyColorizedString
 replaceTagColor (TS.TagLeaf (TS.TagText s)) =
@@ -64,7 +74,7 @@ replaceTagColor (TS.TagLeaf (TS.TagText s)) =
 replaceTagColor (TS.TagBranch "para" _ inner) =
   PCS
     { colorized = mapM_ (colorized . replaceTagColor) inner,
-      nonColorized = concat $ map (nonColorized . replaceTagColor) inner
+      nonColorized = concatMap (nonColorized . replaceTagColor) inner
     }
 replaceTagColor (TS.TagBranch "code" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
@@ -150,13 +160,12 @@ replaceTagColor (TS.TagBranch "citerefentry" _ content) =
     volumNum = case find (tagBranchTagMatches "manvolnum") content of
       Just (TS.TagBranch _ _ [TS.TagLeaf (TS.TagText str)]) -> Just str
       _ -> Nothing
-    
+
     combinedLink :: String
     combinedLink = case (title, volumNum) of
       (Just t, Just vn) -> concat [t, "(", vn, ")"]
       (Just t, Nothing) -> t
-      _ -> "???" 
-
+      _ -> "???"
 replaceTagColor unknown =
   PCS
     { colorized = wrapColor AN.Red $ TS.renderTree [unknown],

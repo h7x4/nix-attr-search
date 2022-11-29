@@ -1,4 +1,4 @@
 { pkgs, compiler ? "ghc924", ... }:
-pkgs.writers.writeHaskellBin "xmldoc2txt" {
+pkgs.writers.writeHaskellBin "docbook2txt" {
   libraries = with pkgs.haskellPackages; [ tagsoup ansi-terminal split text ];
-} (builtins.readFile ./xmldoc2txt.hs)
+} (builtins.readFile ./docbook2txt.hs)

@@ -25,9 +25,9 @@
           type = "app";
           program = "${self.packages.${system}.nix2json}/bin/nix2json";
         };
-        xmldoc2txt = {
+        docbook2txt = {
           type = "app";
-          program = "${self.packages.${system}.xmldoc2txt}/bin/xmldoc2txt";
+          program = "${self.packages.${system}.docbook2txt}/bin/docbook2txt";
         };
       };
 
@@ -40,14 +40,14 @@
         home-manager-search =
           pkgs.callPackage ./searchers/home-manager-search.nix {
             inherit home-manager;
-            inherit (self.packages.${system}) json2nix xmldoc2txt;
+            inherit (self.packages.${system}) json2nix docbook2txt;
             defaultManualPath =
               let pkg = self.packages.${system}.home-manager-json;
               in "${pkg}/share/doc/home-manager/options.json";
           };
         nix-option-search = pkgs.callPackage ./searchers/nix-option-search.nix {
           inherit nixpkgs;
-          inherit (self.packages.${system}) json2nix xmldoc2txt;
+          inherit (self.packages.${system}) json2nix docbook2txt;
           defaultManualPath =
             let pkg = self.packages.${system}.nix-options-json;
             in "${pkg}/share/doc/nixos/options.json";
@@ -67,8 +67,8 @@
         # Internal Tools
         json2nix =
           pkgs.callPackage ./internals/json2nix { compiler = "ghc924"; };
-        xmldoc2txt =
-          pkgs.callPackage ./internals/xmldoc2txt { compiler = "ghc924"; };
+        docbook2txt =
+          pkgs.callPackage ./internals/docbook2txt { compiler = "ghc924"; };
       };
 
       overlays.default = _: prev: prev // self.packages.${system};
