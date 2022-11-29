@@ -1,4 +1,4 @@
-import Data.List (intersperse)
+import Data.List (find, intersperse)
 import Data.List.Split (splitOn)
 import qualified System.Console.ANSI as AN
 import qualified System.Console.ANSI.Types as AN
@@ -18,6 +18,10 @@ data PotentiallyColorizedString = PCS
     nonColorized :: String
   }
 
+-- Remove `</para><para>` tags.
+-- If there are more in one doc comment, the middle ones
+-- will be parsed as a `TagBranch`, which means this
+-- at most has to remove one closing and one opening tag.
 removeParagraphTags :: [TS.TagTree String] -> [TS.TagTree String]
 removeParagraphTags (TS.TagLeaf (TS.TagClose "para") : TS.TagLeaf (TS.TagOpen "para" []) : rest) =
   TS.TagLeaf (TS.TagText "\n") : removeParagraphTags rest
@@ -28,9 +32,14 @@ removeParagraphTags (TS.TagLeaf (TS.TagOpen "para" _) : rest) = removeParagraphT
 removeParagraphTags (x : y : rest) = x : removeParagraphTags (y : rest)
 removeParagraphTags x = x
 
+-- Print a list of PCSs.
+-- Depending on the first argument, the color can be optionally
+-- colored.
 printTags :: Bool -> [PotentiallyColorizedString] -> IO ()
 printTags False = putStrLn . unwords . map nonColorized
 printTags True = mapM_ colorized
+
+-- ANSI helpers
 
 wrapSGR :: AN.SGR -> String -> IO ()
 wrapSGR sgr str = do
@@ -44,6 +53,8 @@ wrapColor c = wrapSGR (AN.SetColor AN.Foreground AN.Vivid c)
 bold :: AN.SGR
 bold = AN.SetConsoleIntensity AN.BoldIntensity
 
+
+-- Replace tags with their PCS string equivalent.
 replaceTagColor :: TS.TagTree String -> PotentiallyColorizedString
 replaceTagColor (TS.TagLeaf (TS.TagText s)) =
   PCS
@@ -100,6 +111,11 @@ replaceTagColor (TS.TagBranch "option" _ [TS.TagLeaf (TS.TagText content)]) =
     { colorized = wrapSGR bold $ concat ["`", content, "`"],
       nonColorized = concat ["`", content, "`"]
     }
+replaceTagColor (TS.TagBranch "envar" _ [TS.TagLeaf (TS.TagText content)]) =
+  PCS
+    { colorized = wrapSGR bold $ concat ["`$", content, "`"],
+      nonColorized = concat ["`$", content, "`"]
+    }
 replaceTagColor (TS.TagBranch "xref" [("linkend", link)] []) =
   PCS
     { colorized = sequence_ $ [putStr "`"] ++ formattedLink ++ [putStr "`"],
@@ -115,6 +131,32 @@ replaceTagColor (TS.TagBranch "xref" [("linkend", link)] []) =
 
     formattedLink :: [IO ()]
     formattedLink = intersperse (wrapSGR bold ".") $ map replaceName $ splitOn "." $ removeOptPrefix link
+replaceTagColor (TS.TagBranch "citerefentry" _ content) =
+  PCS
+    { colorized = wrapColor AN.Blue combinedLink,
+      nonColorized = combinedLink
+    }
+  where
+    tagBranchTagMatches :: String -> TS.TagTree String -> Bool
+    tagBranchTagMatches x (TS.TagBranch tag _ _) = tag == x
+    tagBranchTagMatches _ _ = False
+
+    title :: Maybe String
+    title = case find (tagBranchTagMatches "refentrytitle") content of
+      Just (TS.TagBranch _ _ [TS.TagLeaf (TS.TagText str)]) -> Just str
+      _ -> Nothing
+
+    volumNum :: Maybe String
+    volumNum = case find (tagBranchTagMatches "manvolnum") content of
+      Just (TS.TagBranch _ _ [TS.TagLeaf (TS.TagText str)]) -> Just str
+      _ -> Nothing
+    
+    combinedLink :: String
+    combinedLink = case (title, volumNum) of
+      (Just t, Just vn) -> concat [t, "(", vn, ")"]
+      (Just t, Nothing) -> t
+      _ -> "???" 
+
 replaceTagColor unknown =
   PCS
     { colorized = wrapColor AN.Red $ TS.renderTree [unknown],
