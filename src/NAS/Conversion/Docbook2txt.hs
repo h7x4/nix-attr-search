@@ -1,3 +1,10 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE RankNTypes #-}
+
+module NAS.Conversion.Docbook2txt where
+
 --   This is a program that converts docbook xml to optionally ANSI colored
 --   raw text.
 --
@@ -8,17 +15,11 @@
 --   end up having to write custom conversion logic for every tag to be
 --   consumed by pandoc anyway. So instead, I am just planning on keeping
 --   my own module parsing raw xml tags (for now).
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
 
-import Data.Char (isSpace)
 import Data.List (find, intersperse)
 import Data.List.Split (splitOn)
-import Data.Maybe (fromMaybe)
 import Data.String (IsString, fromString)
 import qualified System.Console.ANSI.Codes as AN
-import qualified System.Console.ANSI.Types as AN
-import System.Environment (getArgs)
 import qualified Text.HTML.TagSoup as TS
 import qualified Text.HTML.TagSoup.Tree as TS
 -- import qualified Text.Layout.Table as T
@@ -60,7 +61,7 @@ instance Monoid Formatted where
 
 realString :: Formatted -> String
 realString (FSeveral fs) = concatMap realString fs
-realString (FWrapped w1 s w2) = realString s
+realString (FWrapped _ s _) = realString s
 realString (FPlain s) = s
 
 realLength :: Formatted -> Int
@@ -96,19 +97,16 @@ instance Monoid PotentiallyColorizedString where
         nonColorized = mempty
       }
 
-main :: IO ()
-main = do
-  stdin <- getContents
-  args <- getArgs
-  let colorizedMode = "-C" `elem` args
-  printTags colorizedMode $ map replaceTagColor $ removeParagraphTags $ TS.parseTree stdin
+processDocs :: Bool -> String -> String
+processDocs isColorized input = 
+  convertTags isColorized $ map replaceTagColor $ removeParagraphTags $ TS.parseTree input
 
 -- Print a list of PCSs.
 -- Depending on the first argument, the color can be optionally
 -- colored.
-printTags :: Bool -> [PotentiallyColorizedString] -> IO ()
-printTags False = putStrLn . unwords . map nonColorized
-printTags True = putStrLn . mconcatMap (show . colorized)
+convertTags :: Bool -> [PotentiallyColorizedString] -> String
+convertTags False = unwords . map nonColorized
+convertTags True = mconcatMap (show . colorized)
 
 -- ANSI helpers
 
@@ -144,6 +142,7 @@ removeParagraphTags (TS.TagLeaf (TS.TagOpen "para" _) : rest) = removeParagraphT
 removeParagraphTags (x : y : rest) = x : removeParagraphTags (y : rest)
 removeParagraphTags x = x
 
+pattern TextLeaf :: forall {str}. str -> TS.TagTree str
 pattern TextLeaf a = TS.TagLeaf (TS.TagText a)
 
 -- Replace tags with their PCS string equivalent.

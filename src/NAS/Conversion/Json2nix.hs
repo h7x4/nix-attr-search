@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+module NAS.Conversion.Json2nix where
+
 import qualified Data.Aeson as A
-import qualified Data.Aeson.Key as A
+-- import qualified Data.Aeson.Key as A
 import qualified Data.Aeson.KeyMap as A
 import qualified Data.ByteString as BS
 import qualified Data.Either.Extra as E

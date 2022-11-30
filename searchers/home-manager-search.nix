@@ -56,7 +56,7 @@ let
       JSON_DATA=$(${jq} ".\"$OPTION_KEY\"" $JSON_MANUAL_PATH)
       export DESCRIPTION=$(echo $JSON_DATA | ${jq} -r ".description" | ${docbook2txt}/bin/docbook2txt ${docbook2txtColorArg})
 
-      EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example.text" 2>/dev/null | ${nixfmt})
+      EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} -r ".example.text" 2>/dev/null | ${nixfmt} 2>/dev/null)
       if [ $? != 0 ]; then
         EXAMPLE_DATA=$(echo $JSON_DATA | ${jq} ".example" | ${json2nix}/bin/json2nix)
       fi
@@ -66,76 +66,90 @@ let
       echo $JSON_DATA | ${gomplate} --datasource opt=stdin:?type=application/json --file ${template}
     '';
 
-in pkgs.writers.writeBash "search-home-manager-attrs" ''
-  JSON_MANUAL_PATH="${defaultManualPath}"
 
-  for i in "$@"; do
-    case $i in
-      -h|--help)
-        cat ${usage}
-        exit 0
-        ;;
-      -j|--json)
-        PRINT_JSON=1
-        shift
-        ;;
-      -np|--no-preview)
-        NO_PREVIEW=1
-        shift
-        ;;
-      -nc|--no-color)
-        NO_COLOR=1
-        shift
-        ;;
-      -f=*|--flake=*)
-        FLAKE="''${i#*=}"
-        shift
-        ;;
-      -r=*|--ref=*)
-        REF="''${i#*=}"
-        shift
-        ;;
-      *|-*|--*)
-        echo "Unknown option $i"
-        cat ${usage}
-        exit 1
-        ;;
-    esac
-  done
+  hms = pkgs.writers.writeHaskellBin "home-manager-search" {
+    libraries = with pkgs.haskellPackages; [ aeson cmdargs process text ];
+    ghcArgs = builtins.trace "\"${defaultManualPath}\"" [
+      "-cpp"
+      ''-DHOME_MANAGER_DEFAULT_PATH="${defaultManualPath}"''
+    ];
+    # postFixup = ''
+    #   wrapProgram $out/bin/home-manager-search --set PATH "$PATH:$out/bin"
+    # '';
+  } (builtins.readFile ./home-manager-search.hs);
+in hms
 
-  if [ -v PRINT_JSON  ] && [ -v NO_PREVIEW ]; then
-    echo "Cannot preview as json with no-preview enabled"
-    cat ${usage}
-    exit 1
-  fi
 
-  if [ -v FLAKE ]; then
-    FLAKE_URL="''${FLAKE}"
+# in pkgs.writers.writeBash "search-home-manager-attrs" ''
+#   JSON_MANUAL_PATH="${defaultManualPath}"
 
-    if [ -v REF ]; then
-      FLAKE_URL="''${FLAKE_URL}?ref=$REF"
-    fi
+#   for i in "$@"; do
+#     case $i in
+#       -h|--help)
+#         cat ${usage}
+#         exit 0
+#         ;;
+#       -j|--json)
+#         PRINT_JSON=1
+#         shift
+#         ;;
+#       -np|--no-preview)
+#         NO_PREVIEW=1
+#         shift
+#         ;;
+#       -nc|--no-color)
+#         NO_COLOR=1
+#         shift
+#         ;;
+#       -f=*|--flake=*)
+#         FLAKE="''${i#*=}"
+#         shift
+#         ;;
+#       -r=*|--ref=*)
+#         REF="''${i#*=}"
+#         shift
+#         ;;
+#       *|-*|--*)
+#         echo "Unknown option $i"
+#         cat ${usage}
+#         exit 1
+#         ;;
+#     esac
+#   done
 
-    FLAKE_URL="''${FLAKE_URL}#docs-json"
-    echo "Building docs from $FLAKE_URL"
+#   if [ -v PRINT_JSON  ] && [ -v NO_PREVIEW ]; then
+#     echo "Cannot preview as json with no-preview enabled"
+#     cat ${usage}
+#     exit 1
+#   fi
 
-    OUT_PATH=$(${pkgs.nix}/bin/nix build "$FLAKE_URL" --no-link --print-out-paths --no-write-lock-file)
-    JSON_MANUAL_PATH="$OUT_PATH/share/doc/home-manager/options.json"
-    echo "Using docs located at $JSON_MANUAL_PATH"
-  fi
+#   if [ -v FLAKE ]; then
+#     FLAKE_URL="''${FLAKE}"
 
-  if [ -v NO_PREVIEW ]; then
-    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf}
-  elif [ -v PRINT_JSON ]; then
-    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${previewJson} {} $JSON_MANUAL_PATH"
-  elif [ -v NO_COLOR ]; then
-    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${
-      previewGomplate false
-    } {} $JSON_MANUAL_PATH"
-  else
-    ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${
-      previewGomplate true
-    } {} $JSON_MANUAL_PATH"
-  fi
-''
+#     if [ -v REF ]; then
+#       FLAKE_URL="''${FLAKE_URL}?ref=$REF"
+#     fi
+
+#     FLAKE_URL="''${FLAKE_URL}#docs-json"
+#     echo "Building docs from $FLAKE_URL"
+
+#     OUT_PATH=$(${pkgs.nix}/bin/nix build "$FLAKE_URL" --no-link --print-out-paths --no-write-lock-file)
+#     JSON_MANUAL_PATH="$OUT_PATH/share/doc/home-manager/options.json"
+#     echo "Using docs located at $JSON_MANUAL_PATH"
+#   fi
+
+#   if [ -v NO_PREVIEW ]; then
+#     ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf}
+#   elif [ -v PRINT_JSON ]; then
+#     ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${previewJson} {} $JSON_MANUAL_PATH"
+#   elif [ -v NO_COLOR ]; then
+#     ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${
+#       previewGomplate false
+#     } {} $JSON_MANUAL_PATH"
+#   else
+#     ${jq} -r 'keys | .[] | .' $JSON_MANUAL_PATH | ${fzf} --preview "${
+#       previewGomplate true
+#     } {} $JSON_MANUAL_PATH"
+#   fi
+# ''
 

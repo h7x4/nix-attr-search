@@ -36,27 +36,73 @@
         self.packages.${system};
 
       packages.${system} = {
-        # Applications
-        home-manager-search =
-          pkgs.callPackage ./searchers/home-manager-search.nix {
-            inherit home-manager;
-            inherit (self.packages.${system}) json2nix docbook2txt;
-            defaultManualPath =
-              let pkg = self.packages.${system}.home-manager-json;
-              in "${pkg}/share/doc/home-manager/options.json";
+        default = self.packages.${system}.nix-attr-search;
+        nix-attr-search = let
+          hPkgs = pkgs.haskell.packages.ghc924.override {
+            overrides = self: super: with pkgs.haskell.lib; {
+              text = super.text_2_0_1;
+              # nixfmt = doJailbreak super.nixfmt;
+            };
           };
-        nix-option-search = pkgs.callPackage ./searchers/nix-option-search.nix {
-          inherit nixpkgs;
-          inherit (self.packages.${system}) json2nix docbook2txt;
-          defaultManualPath =
-            let pkg = self.packages.${system}.nix-options-json;
-            in "${pkg}/share/doc/nixos/options.json";
+
+          homeManagerDefaultPath =
+            let pkg = self.packages.${system}.home-manager-json;
+            in "${pkg}/share/doc/home-manager/options.json";
+
+          src = pkgs.symlinkJoin {
+            name="nix-attr-search-source";
+            paths = [
+              ./.
+              (pkgs.writeTextFile {
+                name = "nix-attr-search-default-option-paths";
+                destination = "/src/NAS/DefaultPaths.hs";
+                text = ''
+                  module NAS.DefaultPaths where
+
+                  defaultHomeManagerOptionsPath :: String
+                  defaultHomeManagerOptionsPath = "${homeManagerDefaultPath}"
+                '';
+              })
+            ];
+          };
+          
+          unwrapped = hPkgs.callCabal2nix "nix-attr-search-unwrapped" src { };
+        in pkgs.symlinkJoin {
+          name = "hello";
+          paths = [ unwrapped ];
+          buildInputs = [ pkgs.makeWrapper ];
+          postBuild = ''
+            wrapProgram $out/bin/nix-attr-search \
+              --set PATH ${pkgs.lib.makeBinPath (with pkgs; [
+                jq
+                fzf
+                bat
+                unwrapped
+              ])}
+          '';
         };
-        nix-package-search =
-          pkgs.callPackage ./searchers/nix-package-search.nix { };
-        nix-lib-search = pkgs.callPackage ./searchers/nix-lib-search.nix { };
-        nur-package-search =
-          pkgs.callPackage ./searchers/nur-package-search.nix { };
+
+        # Applications
+        # home-manager-search =
+        #   pkgs.callPackage ./searchers/home-manager-search.nix {
+        #     inherit home-manager;
+        #     inherit (self.packages.${system}) json2nix docbook2txt;
+        #     defaultManualPath =
+        #       let pkg = self.packages.${system}.home-manager-json;
+        #       in "${pkg}/share/doc/home-manager/options.json";
+        #   };
+        # nix-option-search = pkgs.callPackage ./searchers/nix-option-search.nix {
+        #   inherit nixpkgs;
+        #   inherit (self.packages.${system}) json2nix docbook2txt;
+        #   defaultManualPath =
+        #     let pkg = self.packages.${system}.nix-options-json;
+        #     in "${pkg}/share/doc/nixos/options.json";
+        # };
+        # nix-package-search =
+        #   pkgs.callPackage ./searchers/nix-package-search.nix { };
+        # nix-lib-search = pkgs.callPackage ./searchers/nix-lib-search.nix { };
+        # nur-package-search =
+        #   pkgs.callPackage ./searchers/nur-package-search.nix { };
 
         # Data sources
         home-manager-json = home-manager.packages.${system}.docs-json;
@@ -65,10 +111,10 @@
         # nix-packages-json = pkgs.emptyFile;
 
         # Internal Tools
-        json2nix =
-          pkgs.callPackage ./internals/json2nix { compiler = "ghc924"; };
-        docbook2txt =
-          pkgs.callPackage ./internals/docbook2txt { compiler = "ghc924"; };
+        # json2nix =
+        #   pkgs.callPackage ./internals/json2nix { compiler = "ghc924"; };
+        # docbook2txt =
+        #   pkgs.callPackage ./internals/docbook2txt { compiler = "ghc924"; };
       };
 
       overlays.default = _: prev: prev // self.packages.${system};

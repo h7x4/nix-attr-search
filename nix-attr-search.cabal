@@ -1,0 +1,62 @@
+cabal-version:      2.4
+name:               nix-attr-search
+version:            0.1.0.0
+synopsis:     Easy search mechanism for nix manuals, built on fzf
+description:
+  TODO: Write something here...
+stability: alpha
+homepage: https://github.com/h7x4/nix-attr-search
+bug-reports: https://github.com/h7x4/nix-attr-search/issues
+license:            MIT
+license-file:       LICENSE
+author:             h7x4
+maintainer:         h7x4@nani.wtf
+copyright:          (c) 2022 h7x4
+category:           Development
+extra-source-files:
+  CHANGELOG.md
+  LICENSE
+  README.md
+
+source-repository head
+  type:     git
+  location: git://github.com/h7x4/nix-attr-search.git
+
+executable nix-attr-search
+  main-is:          Main.hs
+  other-modules:
+    NAS.Cli.Args
+    NAS.Cli.Conversion
+    NAS.Conversion.Docbook2txt
+    NAS.Conversion.Json2nix
+    NAS.Searchers.HomeManager
+    NAS.Searchers.NixosOptions
+    NAS.Templates.OptionsTemplate
+    NAS.DefaultPaths
+    NAS.Preview
+    NAS.Utils
+  build-depends:
+    aeson ^>=2.0,
+    ansi-terminal ^>=0.11,
+    base >=4.15,
+    base64 ^>= 0.4.2,
+    bytestring >=0.10,
+    cmdargs ^>= 0.10,
+    containers ^>= 0.6.5,
+    extra ^>=1.7,
+    nixfmt ^>=0.5,
+    process ^>=1.6.13,
+    split ^>=0.2.3,
+    table-layout ^>=0.9.1,
+    tagsoup ^>=0.14,
+    text >=2,
+    vector ^>=0.12
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -threaded
