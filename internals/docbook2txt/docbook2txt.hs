@@ -61,6 +61,9 @@ wrapSGR sgr str = do
 wrapColor :: AN.Color -> String -> IO ()
 wrapColor c = wrapSGR (AN.SetColor AN.Foreground AN.Vivid c)
 
+wrapTxt :: String -> String -> String
+wrapTxt delimiter string = concat [delimiter, string, delimiter]
+
 bold :: AN.SGR
 bold = AN.SetConsoleIntensity AN.BoldIntensity
 
@@ -78,33 +81,33 @@ replaceTagColor (TS.TagBranch "para" _ inner) =
     }
 replaceTagColor (TS.TagBranch "code" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
-    { colorized = wrapSGR bold $ concat ["`", content, "`"],
-      nonColorized = concat ["`", content, "`"]
+    { colorized = wrapSGR bold $ wrapTxt "`" content,
+      nonColorized = wrapTxt "`" content
     }
 replaceTagColor (TS.TagBranch "command" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
-    { colorized = wrapSGR bold $ concat ["`", content, "`"],
-      nonColorized = concat ["`", content, "`"]
+    { colorized = wrapSGR bold $ wrapTxt "`" content,
+      nonColorized = wrapTxt "`" content
     }
 replaceTagColor (TS.TagBranch "filename" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
     { colorized = wrapColor AN.Yellow content,
-      nonColorized = concat ["`", content, "`"]
+      nonColorized = wrapTxt "`" content
     }
 replaceTagColor (TS.TagBranch "emphasis" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
     { colorized = wrapSGR bold content,
-      nonColorized = concat ["`", content, "`"]
+      nonColorized = wrapTxt "`" content
     }
 replaceTagColor (TS.TagBranch "literal" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
     { colorized = wrapColor AN.Red content,
-      nonColorized = concat ["`", content, "`"]
+      nonColorized = wrapTxt "`" content
     }
 replaceTagColor (TS.TagBranch "varname" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
     { colorized = wrapColor AN.Red content,
-      nonColorized = concat ["`", content, "`"]
+      nonColorized = wrapTxt "`" content
     }
 replaceTagColor (TS.TagBranch "link" [("xlink:href", link)] []) =
   PCS
@@ -118,18 +121,28 @@ replaceTagColor (TS.TagBranch "link" [("xlink:href", link)] [TS.TagLeaf (TS.TagT
     }
 replaceTagColor (TS.TagBranch "option" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
-    { colorized = wrapSGR bold $ concat ["`", content, "`"],
-      nonColorized = concat ["`", content, "`"]
+    { colorized = wrapSGR bold $ wrapTxt "`" content,
+      nonColorized = wrapTxt "`" content
     }
 replaceTagColor (TS.TagBranch "envar" _ [TS.TagLeaf (TS.TagText content)]) =
   PCS
     { colorized = wrapSGR bold $ concat ["`$", content, "`"],
       nonColorized = concat ["`$", content, "`"]
     }
+replaceTagColor (TS.TagBranch "quote" _ inner) =
+  PCS
+    { colorized = sequence_ [putStr "\"", mapM_ (colorized . replaceTagColor) inner, putStr "\""],
+      nonColorized = wrapTxt "\"" $ concatMap (nonColorized . replaceTagColor) inner
+    }
+replaceTagColor (TS.TagBranch "warning" _ inner) =
+  PCS
+    { colorized = sequence_ [wrapColor AN.Red "WARNING: ", mapM_ (colorized . replaceTagColor) inner],
+      nonColorized = "WARNING: " ++ concatMap (nonColorized . replaceTagColor) inner
+    }
 replaceTagColor (TS.TagBranch "xref" [("linkend", link)] []) =
   PCS
     { colorized = sequence_ $ [putStr "`"] ++ formattedLink ++ [putStr "`"],
-      nonColorized = concat ["`", link, "`"]
+      nonColorized = wrapTxt "`" link
     }
   where
     removeOptPrefix :: String -> String
